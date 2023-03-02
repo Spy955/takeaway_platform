@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * @author spy
  * @create 2023-03-01 16:48
@@ -71,12 +73,18 @@ public class CategoryController {
         return R.success("删除成功");
     }
 
-
-
-
-
-
-
+    /**
+     * 进行分类下拉框信息回显
+     * @return
+     */
+    @GetMapping("/list")
+    public R<List<Category>> list(Category category){
+        LambdaQueryWrapper<Category> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Category::getType, category.getType());
+        queryWrapper.orderByAsc(Category::getSort).orderByDesc(Category::getUpdateTime);
+        List<Category> categoryList = categoryService.list(queryWrapper);
+        return R.success(categoryList);
+    }
 
 
 }
