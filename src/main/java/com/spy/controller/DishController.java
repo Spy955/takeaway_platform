@@ -10,6 +10,7 @@ import com.spy.service.CategoryService;
 import com.spy.service.DishFlavorService;
 import com.spy.service.DishService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,6 +42,8 @@ public class DishController {
      * @param name
      * @return
      */
+    /*
+    //不显示菜品分类，因此要引入dishDto来进行显示
     @GetMapping("/page")
     public R<Page> page(int page, int pageSize, String name) {
         Page<Dish> pageInfo = new Page<>(page,pageSize);
@@ -49,6 +52,40 @@ public class DishController {
         queryWrapper.orderByAsc(Dish::getSort);
         dishService.page(pageInfo,queryWrapper);
         return R.success(pageInfo);
+    }*/
+    @GetMapping("/page")
+    public R<Page> page(int page, int pageSize, String name) {
+        Page<Dish> pageInfo = new Page<>(page,pageSize);
+        Page<DishDto> dtoPage = new Page<>();
+
+        //条件构造器
+        LambdaQueryWrapper<Dish> queryWrapper = new LambdaQueryWrapper<>();
+        //添加过滤条件
+        queryWrapper.like(name != null,Dish::getName,name);
+        //添加排序条件
+        queryWrapper.orderByDesc(Dish::getUpdateTime);
+
+        dishService.page(pageInfo,queryWrapper);
+
+        BeanUtils.copyProperties(pageInfo,dtoPage,"records");
+
+        List<Dish> records = pageInfo.getRecords();
+
+        List<DishDto> list = records.stream().map((item) -> {
+            DishDto dishDto = new DishDto();
+            BeanUtils.copyProperties(item,dishDto);
+            //获取分类id
+            Long categoryId = item.getCategoryId();
+            Category category = categoryService.getById(categoryId);
+            if (category != null) {
+                String categoryName = category.getName();
+                dishDto.setCategoryName(categoryName);
+            }
+            return dishDto;
+        }).collect(Collectors.toList());
+
+        dtoPage.setRecords(list);
+        return R.success(dtoPage);
     }
 
     /**
@@ -112,7 +149,27 @@ public class DishController {
             return item;
         }).collect(Collectors.toList());
         dishService.updateBatchById(dishList);
-        return R.success("菜品起售停售修改成功");
+        return R.success("菜品状态修改成功");
+    }
+
+
+    /**
+     * 套餐新增时将菜品分类中的各菜品信息进行回显
+     * @return
+     */
+    @GetMapping("/list")
+    public R<List<Dish>> list(Dish dish) {
+        //构造查询条件对象
+        LambdaQueryWrapper<Dish> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(dish.getCategoryId() != null, Dish::getCategoryId, dish.getCategoryId());
+        //添加条件，查询状态为1（启售）
+        queryWrapper.eq(Dish::getStatus,1);
+        //添加排序条件
+        queryWrapper.orderByAsc(Dish::getSort).orderByDesc(Dish::getUpdateTime);
+
+        List<Dish> list = dishService.list(queryWrapper);
+
+        return R.success(list);
     }
 
 
