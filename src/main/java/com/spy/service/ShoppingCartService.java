@@ -8,4 +8,5 @@ import com.spy.entity.ShoppingCart;
  * @create 2023-03-13 10:47
  */
 public interface ShoppingCartService extends IService<ShoppingCart> {
+    void clean();
 }
