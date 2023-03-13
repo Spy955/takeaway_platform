@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import java.net.http.HttpRequest;
 import java.util.Map;
 
 /**
@@ -44,11 +46,10 @@ public class UserController {
             String code = ValidateCodeUtils.generateValidateCode(4).toString();
             log.info("code:{}",code);
             //调用阿里云短信服务发送短信
-            SMSUtils.sendMessage("润润科技","SMS_273850197",phone,code);
+            /*SMSUtils.sendMessage("润润科技","SMS_273850197",phone,code);*/
             //将验证码保存到session中
             session.setAttribute(phone,code);
-            /*session.setAttribute("phone",phone);
-            session.setAttribute("code",code);*/
+
             return R.success("手机验证码短信发送成功");
         }
         return R.error("短信验证码发送失败");
@@ -95,7 +96,15 @@ public class UserController {
     }
 
 
-
+    /**
+     * 登出操作
+     * @return
+     */
+    @PostMapping("/loginout")
+    public R<String> logout(HttpServletRequest request){
+        request.getSession().removeAttribute("user");
+        return R.success("登出成功");
+    }
 
 }
 

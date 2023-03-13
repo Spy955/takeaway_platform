@@ -3,11 +3,15 @@ package com.spy.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.spy.common.R;
+import com.spy.dto.DishDto;
 import com.spy.dto.SetmealDto;
 import com.spy.entity.Category;
+import com.spy.entity.Dish;
 import com.spy.entity.Setmeal;
+import com.spy.entity.SetmealDish;
 import com.spy.service.CategoryService;
 import com.spy.service.DishService;
+import com.spy.service.SetmealDishService;
 import com.spy.service.SetmealService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -15,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -28,6 +33,9 @@ public class SetmealController {
 
     @Autowired
     private SetmealService setmealService;
+
+    @Autowired
+    private SetmealDishService setmealDishService;
 
     @Autowired
     private DishService dishService;
@@ -149,7 +157,41 @@ public class SetmealController {
     }
 
 
+    /**
+     * 用于客户端菜品展示
+     * @param setmeal
+     * @return
+     */
+    @GetMapping("/list")
+    public R<List<Setmeal>> list(Setmeal setmeal){
+        LambdaQueryWrapper<Setmeal> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Setmeal::getCategoryId,setmeal.getCategoryId());
+        queryWrapper.eq(Setmeal::getStatus,1);
+        List<Setmeal> setmealList = setmealService.list(queryWrapper);
+        return R.success(setmealList);
+    }
 
+    /**
+     * 客户端点击套餐时，显示套餐的详细信息
+     * @return
+     */
+    @GetMapping("/dish/{id}")
+    public R<List<DishDto>> setmealDesc(@PathVariable Long id) {
+        LambdaQueryWrapper<SetmealDish> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SetmealDish::getSetmealId,id);
+        List<SetmealDish> setmealDishList = setmealDishService.list(queryWrapper);
+
+        List<DishDto> dishDtos = setmealDishList.stream().map((item) -> {
+            DishDto dishDto = new DishDto();
+            BeanUtils.copyProperties(item,dishDto);
+            Long dishId = item.getDishId();
+            Dish dish = dishService.getById(dishId);
+            BeanUtils.copyProperties(dish,dishDto);
+            return dishDto;
+        }).collect(Collectors.toList());
+
+        return R.success(dishDtos);
+    }
 
 
 }
